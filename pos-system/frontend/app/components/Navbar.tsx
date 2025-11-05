@@ -10,8 +10,8 @@ export default function Navbar() {
   if (loading) return null;
 
   const handleLogout = async () => {
-    await logout(); // clear session
-    router.replace("/"); // redirect to root "/" (login page)
+    await logout(); // clear user session and context
+    router.replace("/"); // redirect to root
   };
 
   return (
@@ -24,14 +24,6 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center space-x-4">
-        {user?.role === "Admin" && (
-          <button
-            className="bg-green-500 px-3 py-1 rounded hover:bg-green-600"
-            onClick={() => router.push("/register")}
-          >
-            Register
-          </button>
-        )}
         {user && (
           <button
             className="bg-red-500 px-3 py-1 rounded hover:bg-red-600"
