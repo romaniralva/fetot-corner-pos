@@ -4,10 +4,15 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
-  const { role, logout, loading } = useAuth();
+  const { user, logout, loading } = useAuth();
   const router = useRouter();
 
-  if (loading) return null; // wait until AuthContext is loaded
+  if (loading) return null;
+
+  const handleLogout = async () => {
+    await logout(); // clear session
+    router.replace("/"); // redirect to root "/" (login page)
+  };
 
   return (
     <nav className="bg-gray-800 text-white flex justify-between items-center px-6 py-3">
@@ -19,7 +24,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center space-x-4">
-        {role === "Admin" && (
+        {user?.role === "Admin" && (
           <button
             className="bg-green-500 px-3 py-1 rounded hover:bg-green-600"
             onClick={() => router.push("/register")}
@@ -27,10 +32,10 @@ export default function Navbar() {
             Register
           </button>
         )}
-        {role && (
+        {user && (
           <button
             className="bg-red-500 px-3 py-1 rounded hover:bg-red-600"
-            onClick={logout}
+            onClick={handleLogout}
           >
             Logout
           </button>

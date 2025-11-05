@@ -1,38 +1,81 @@
 "use client";
 
-import { ReactNode, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
-
-interface ProtectedLayoutProps {
-  allowedRoles: string[];
-  children: ReactNode;
-}
 
 export default function ProtectedLayout({
   allowedRoles,
   children,
-}: ProtectedLayoutProps) {
-  const { role, loading, refreshUser } = useAuth();
+}: {
+  allowedRoles: string[];
+  children: React.ReactNode;
+}) {
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const [authorized, setAuthorized] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   useEffect(() => {
-    const checkAccess = async () => {
-      if (!role) {
-        await refreshUser(); // fetch role if not loaded
-        return;
-      }
+    if (loading) return;
 
-      // Admin bypass: can access all pages
-      if (role !== "Admin" && !allowedRoles.includes(role)) {
-        router.push("/login"); // redirect unauthorized roles
-      }
+    const handlePopState = () => {
+      if (!user) router.replace("/");
     };
 
-    checkAccess();
-  }, [role, allowedRoles, router, refreshUser]);
+    window.addEventListener("popstate", handlePopState);
 
-  if (loading || !role) return <div>Loading...</div>; // optional loading
+    if (!user) {
+      router.replace("/");
+      return;
+    }
 
-  return <>{children}</>;
+    if (user.role === "Admin" || allowedRoles.includes(user.role)) {
+      setAuthorized(true);
+      setShowModal(false);
+    } else {
+      setAuthorized(false);
+      setShowModal(true);
+    }
+
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [user, loading, allowedRoles, router]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500 text-lg animate-pulse">
+          Checking authorization...
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {authorized && <>{children}</>}
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-xl shadow-lg text-center max-w-sm mx-auto">
+            <h2 className="text-xl font-semibold text-red-600 mb-2">
+              Unauthorized Access
+            </h2>
+            <p className="text-gray-600 mb-4">
+              You don’t have permission to view this page.
+            </p>
+            <button
+              onClick={() => {
+                setShowModal(false);
+                router.back();
+              }}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+            >
+              Go Back
+            </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }

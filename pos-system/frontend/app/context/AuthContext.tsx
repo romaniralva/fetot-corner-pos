@@ -1,46 +1,47 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+
+interface User {
+  uid: string;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+}
 
 interface AuthContextType {
-  role: string | null;
-  uid: string | null;
+  user: User | null;
   loading: boolean;
   refreshUser: () => Promise<void>;
   logout: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  refreshUser: async () => {},
+  logout: async () => {},
+});
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
-};
-
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [role, setRole] = useState<string | null>(null);
-  const [uid, setUid] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false); // Start false to avoid login page flicker
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const refreshUser = async () => {
-    setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/api/auth/me`, {
         withCredentials: true,
       });
-      setRole(res.data.user.role);
-      setUid(res.data.user.uid);
-    } catch {
-      // silently handle 401 Unauthorized
-      setRole(null);
-      setUid(null);
+      setUser(res.data.user);
+      sessionStorage.setItem("auth", "true"); // mark session
+    } catch (err) {
+      setUser(null);
+      sessionStorage.removeItem("auth");
     } finally {
       setLoading(false);
     }
@@ -53,18 +54,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         {},
         { withCredentials: true }
       );
-      setRole(null);
-      setUid(null);
-      toast.success("Logged out successfully");
-      router.push("/login");
-    } catch {
-      toast.error("Logout failed");
+      setUser(null);
+      sessionStorage.removeItem("auth");
+    } catch (err) {
+      console.error("Logout API failed", err);
     }
   };
 
+  useEffect(() => {
+    refreshUser();
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ role, uid, loading, refreshUser, logout }}>
+    <AuthContext.Provider value={{ user, loading, refreshUser, logout }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => useContext(AuthContext);

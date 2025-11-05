@@ -1,39 +1,34 @@
-// backend/src/middleware/authMiddleware.ts
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { Role } from "../models/enums";
+import createHttpError from "http-errors";
 
-export const requireAuth = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
+export interface AuthRequest extends Request {
+  user?: { uid: string; role: string };
+}
 
-  const token = authHeader.split(" ")[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as {
-      uid: string;
-      role: Role;
-    };
-    (req as any).user = decoded;
-    next();
-  } catch {
-    return res.status(401).json({ message: "Invalid token" });
-  }
-};
+export const authMiddleware = (allowedRoles?: string[]) => {
+  return (req: AuthRequest, res: Response, next: NextFunction) => {
+    const token = req.cookies?.token;
+    if (!token) return next(createHttpError(401, "Unauthorized"));
 
-export const requireRole = (roles: Role[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    const user = (req as any).user;
-    if (!user || !roles.includes(user.role)) {
-      return res
-        .status(403)
-        .json({ message: "Forbidden: insufficient rights" });
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+        uid: string;
+        role: string;
+      };
+      req.user = decoded;
+
+      if (
+        allowedRoles &&
+        !allowedRoles.includes(decoded.role) &&
+        decoded.role !== "Admin"
+      ) {
+        return next(createHttpError(403, "Forbidden: Insufficient role"));
+      }
+
+      next();
+    } catch {
+      next(createHttpError(401, "Invalid or expired token"));
     }
-    next();
   };
 };

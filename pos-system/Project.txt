@@ -1,0 +1,71 @@
+Fetot-Corner-POS/
+├── backend/
+│   ├── src/
+│   │   ├── index.ts                 # Main server entry (Express app)
+│   │   ├── db.ts                    # MongoDB connection
+│   │   ├── models/
+│   │   │   ├── Employee.ts          # Employee schema
+│   │   │   ├── Credential.ts        # Credential schema
+│   │   │   └── enums.ts             # Role and Status enums
+│   │   ├── routes/
+│   │   │   └── authRoutes.ts        # Auth routes (login, register, /me, logout)
+│   │   └── middleware/
+│   │       └── authMiddleware.ts    # Role-based route protection
+│   ├── package.json
+│   └── tsconfig.json
+│
+├── frontend/
+│   ├── app/
+│   │   ├── page.tsx                 # Root login page
+│   │   ├── admin/page.tsx           # Admin dashboard
+│   │   ├── pos/page.tsx             # POS page
+│   │   ├── register/page.tsx        # User registration page
+│   │   └── components/
+│   │       ├── Navbar.tsx           # Navbar with role-based links
+│   │       └── ProtectedLayout.tsx # Client-side role-based protection
+│   ├── context/
+│   │   └── AuthContext.tsx          # Auth context to manage user state
+│   ├── styles/
+│   │   └── globals.css              # Tailwind base styles
+│   ├── package.json
+│   ├── tailwind.config.js
+│   ├── postcss.config.js
+│   └── tsconfig.json
+│
+├── .env                              # API URLs, JWT_SECRET, etc.
+└── README.md
+
+
+Backend
+
+authRoutes.ts handles login, register, /me, and logout.
+
+authMiddleware.ts is used for API route protection and role checks.
+
+db.ts connects to MongoDB.
+
+enums.ts holds Role and Status enums.
+
+JWT cookie is session-based (expires on browser close).
+
+Frontend
+
+Root / page is the login page.
+
+ProtectedLayout.tsx wraps protected pages to handle authorization and modal popups.
+
+Navbar dynamically shows Register only for Admin users.
+
+Role-based redirects after login.
+
+Uses react-hot-toast for notifications.
+
+Security Features
+
+HTTP-only cookies for JWT.
+
+Role-based access control both server-side (API) and client-side.
+
+Session cookie to expire on browser close.
+
+Unauthorized modal instead of redirect to login for logged-in users.
